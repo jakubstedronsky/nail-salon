@@ -313,11 +313,14 @@ export default function NailSalonPOS(){
       sb.get('clients','order=id'),sb.get('bookings','order=booking_date,booking_time'),
       sb.get('sales','order=id'),sb.get('expenses','order=id.desc')]);
     const s=setR[0]||{};
+    if(!setR[0])sb.post('settings',{id:1,company_name:'Nail Studio',owner_name:'',address:'',ico:'',dic:'',phone:'',email:'',bank_account:'',thank_you:'Děkujeme za návštěvu! 💅',username:'admin',password:'1234',commission_rate:40,receipt_counter:1,language:'cs'});
     setCompany({name:s.company_name||'Nail Studio',owner:s.owner_name||'',address:s.address||'',ico:s.ico||'',dic:s.dic||'',phone:s.phone||'',email:s.email||'',bankAccount:s.bank_account||'',thankYou:s.thank_you||'Děkujeme za návštěvu! 💅'});
     setCreds({username:s.username||'admin',password:s.password||'1234'});
     setCommRate(s.commission_rate||40);setReceiptNo(s.receipt_counter||1);if(s.language)setLang(s.language);
-    setHours(hrR.map(h=>({day:h.day_of_week,label:DAY_LABELS[h.day_of_week],open:h.is_open,start:h.open_time,end:h.close_time,hasBreak:h.has_break,breakStart:h.break_start||'',breakEnd:h.break_end||''})));
+    if(hrR.length>0){setHours(hrR.map(h=>({day:h.day_of_week,label:DAY_LABELS[h.day_of_week],open:h.is_open,start:h.open_time,end:h.close_time,hasBreak:h.has_break,breakStart:h.break_start||'',breakEnd:h.break_end||''})));}
+    else{DEFAULT_HOURS.forEach(h=>sb.post('opening_hours',{day_of_week:h.day,is_open:h.open,open_time:h.start,close_time:h.end,has_break:h.hasBreak,break_start:h.breakStart||null,break_end:h.breakEnd||null}));}
     smsR.forEach(x=>{if(x.template_type==='confirm')setSmsConfirmTpl(x.template_text);if(x.template_type==='cancel')setSmsCancelTpl(x.template_text);if(x.template_type==='cancel_info')setSmsCancelInfo(x.template_text);});
+    if(smsR.length===0){sb.post('sms_templates',{template_type:'confirm',template_text:'Dobrý den {jmeno}, potvrzujeme Vaši rezervaci na {datum} v {cas}. {salon}, tel: {telefon}'});sb.post('sms_templates',{template_type:'cancel',template_text:'Dobrý den {jmeno}, Vaše rezervace na {datum} v {cas} byla zrušena. {salon}'});sb.post('sms_templates',{template_type:'cancel_info',template_text:'Klientka {jmeno} zrušila rezervaci na {datum} v {cas}. Odkaz: {link}'});}
     const scM={},mcM={},pcM={},scN={},mcN={},pcN={};
     scR.forEach(c=>{scM[c.name]=c.id;scN[c.id]=c.name;});setTaskCatList(scR.map(c=>c.name));setSvcCatMapR(scM);
     mcR.forEach(c=>{mcM[c.name]=c.id;mcN[c.id]=c.name;});setMatCatList(mcR.map(c=>c.name));setMatCatMapR(mcM);
