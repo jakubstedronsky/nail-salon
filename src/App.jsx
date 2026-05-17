@@ -242,13 +242,13 @@ function OnlineBooking({taskCards,bookings,cancelledIds,onBook,hours,TAll,client
   return (<div style={{maxWidth:660,margin:"0 auto",padding:"0 14px",position:"relative"}}>{flagBar}
     <div style={{display:"flex",gap:4,marginBottom:14,marginTop:6}}>{[0,1,2,3].map(i=><div key={i} style={{flex:1,textAlign:"center"}}><div style={{height:4,borderRadius:2,background:step>=i?"#c9956b":"#e8dfd4",marginBottom:3}}/><div style={{fontSize:9,color:step>=i?"#c9956b":"#b0a090",fontWeight:step===i?600:400}}>{i+1}.</div></div>)}</div>
     {step===0&&<><div style={{fontSize:14,fontWeight:600,fontFamily:FP,marginBottom:10,textAlign:"center"}}>{t.yourPhone}</div>
-      <div style={{maxWidth:360,margin:"0 auto"}}>
+      <div style={{maxWidth:360,margin:"0 auto",padding:"0 4px"}}>
         <div style={{display:"flex",gap:6,alignItems:"stretch"}}>
           <div style={{position:"relative",flexShrink:0}}>
-            <button onClick={()=>setPrefixOpen(p=>!p)} style={{height:"100%",padding:"10px 10px",borderRadius:12,border:"2px solid #e8dfd4",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",gap:4,fontFamily:F,fontSize:14,minWidth:95}}>
+            <button onClick={()=>setPrefixOpen(p=>!p)} style={{height:"100%",padding:"10px 8px",borderRadius:12,border:"2px solid #e8dfd4",background:"#fff",cursor:"pointer",display:"flex",alignItems:"center",gap:3,fontFamily:F,fontSize:13,minWidth:80}}>
               <span style={{fontSize:18}}>{prefix.flag}</span><span style={{fontWeight:600}}>{prefix.code}</span><span style={{fontSize:10,color:"#b0a090"}}>▼</span>
             </button>
-            {prefixOpen&&<div style={{position:"absolute",top:"100%",left:0,zIndex:20,background:"#fff",borderRadius:12,boxShadow:"0 8px 32px rgba(0,0,0,0.15)",border:"1px solid #e8dfd4",overflow:"hidden",marginTop:4,minWidth:200}}>
+            {prefixOpen&&<div style={{position:"absolute",top:"100%",left:0,zIndex:20,background:"#fff",borderRadius:12,boxShadow:"0 8px 32px rgba(0,0,0,0.15)",border:"1px solid #e8dfd4",overflow:"hidden",marginTop:4,minWidth:180,maxWidth:"90vw"}}>
               {PHONE_PREFIXES.map(p=><button key={p.code} onClick={()=>onPrefixChange(p)} style={{width:"100%",padding:"10px 14px",border:"none",borderBottom:"1px solid #f5efe8",background:prefix.code===p.code?"#fef8f0":"#fff",cursor:"pointer",display:"flex",alignItems:"center",gap:8,fontFamily:F,fontSize:13,textAlign:"left"}}>
                 <span style={{fontSize:18}}>{p.flag}</span><span style={{fontWeight:600,minWidth:45}}>{p.code}</span><span style={{color:"#8a7b6b"}}>{p.name}</span>
               </button>)}
@@ -627,7 +627,7 @@ export default function NailSalonPOS(){
 
   if(!loggedIn) return (
     <div style={{width:"100%",height:"100vh",background:"linear-gradient(160deg,#2c2420,#3d322b,#4a3f37)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:F}}>
-      <div style={{background:"#fff",borderRadius:20,padding:36,width:340,boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+      <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",width:"92vw",maxWidth:340,boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
         <div style={{textAlign:"center",marginBottom:24}}>
           <div style={{width:56,height:56,borderRadius:"50%",background:"linear-gradient(135deg,#c9956b,#a6744e)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,margin:"0 auto 10px"}}>💅</div>
           <div style={{fontFamily:FP,fontSize:20,fontWeight:700,color:"#2c2420"}}>{company.name}</div>
