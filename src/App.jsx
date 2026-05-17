@@ -304,38 +304,85 @@ function OnlineBooking({taskCards,bookings,cancelledIds,onBook,hours,TAll,client
 /* ═══ MAIN ═══ */
 const IS_BOOK=new URLSearchParams(window.location.search).has('book');
 
+/* ═══ Capture PWA install prompt globally (before React mounts) ═══ */
+let _deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();_deferredInstallPrompt=e;});
+
 /* ═══ PWA Install Banner Component ═══ */
 function InstallBanner({lang}){
-  const[deferredPrompt,setDeferredPrompt]=useState(null);
-  const[showIosBanner,setShowIosBanner]=useState(false);
+  const[canInstall,setCanInstall]=useState(!!_deferredInstallPrompt);
   const[dismissed,setDismissed]=useState(false);
   const isIos=/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+  const isAndroid=/android/.test(navigator.userAgent.toLowerCase());
   const isInStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
   useEffect(()=>{
     if(isInStandalone)return;
-    if(isIos){setShowIosBanner(true);return;}
-    const h=e=>{e.preventDefault();setDeferredPrompt(e);};
+    const h=e=>{e.preventDefault();_deferredInstallPrompt=e;setCanInstall(true);};
     window.addEventListener('beforeinstallprompt',h);
-    return()=>window.removeEventListener('beforeinstallprompt',h);
+    const iv=setInterval(()=>{if(_deferredInstallPrompt)setCanInstall(true);},1000);
+    return()=>{window.removeEventListener('beforeinstallprompt',h);clearInterval(iv);};
   },[]);
-  const doInstall=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();const r=await deferredPrompt.userChoice;if(r.outcome==='accepted')setDismissed(true);setDeferredPrompt(null);};
+  const doInstall=async()=>{if(!_deferredInstallPrompt)return;_deferredInstallPrompt.prompt();const r=await _deferredInstallPrompt.userChoice;if(r.outcome==='accepted')setDismissed(true);_deferredInstallPrompt=null;setCanInstall(false);};
   if(isInStandalone||dismissed)return null;
-  const txt=lang==="ua"?{title:"Встановити додаток",desc:"Додайте на головний екран для швидкого доступу",btn:"Встановити",iosTitle:"Встановити додаток",iosDesc:"Натисніть кнопку «Поділитися» ↗ внизу, потім «На Початковий екран»"}:{title:"Nainstalovat aplikaci",desc:"Přidejte si na plochu pro rychlý přístup",btn:"Nainstalovat",iosTitle:"Nainstalovat aplikaci",iosDesc:"Klepněte na tlačítko \"Sdílet\" ↗ dole a pak \"Na plochu\""};
-  if(isIos&&showIosBanner)return(
-    <div style={{background:"linear-gradient(135deg,#c9956b,#a6744e)",borderRadius:16,padding:"16px 18px",margin:"0 14px 14px",color:"#fff",position:"relative"}}>
-      <button onClick={()=>setDismissed(true)} style={{position:"absolute",top:8,right:12,background:"none",border:"none",color:"rgba(255,255,255,0.7)",fontSize:18,cursor:"pointer"}}>✕</button>
-      <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>📲 {txt.iosTitle}</div>
-      <div style={{fontSize:12,opacity:0.9,lineHeight:1.4}}>{txt.iosDesc}</div>
+  const cs=lang==="ua";
+  const boxStyle={background:"linear-gradient(135deg,#c9956b,#a6744e)",borderRadius:16,padding:"18px 20px",margin:"0 10px 14px",color:"#fff",boxShadow:"0 4px 16px rgba(201,149,107,0.4)"};
+  const iconBox={width:52,height:52,borderRadius:14,background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0};
+  const dismissBtn=<button onClick={()=>setDismissed(true)} style={{position:"absolute",top:10,right:12,background:"none",border:"none",color:"rgba(255,255,255,0.6)",fontSize:16,cursor:"pointer",padding:4}}>✕</button>;
+  /* ── Android with install prompt ── */
+  if(canInstall)return(
+    <div style={{...boxStyle,position:"relative"}}>{dismissBtn}
+      <div style={{display:"flex",alignItems:"center",gap:14}}>
+        <div style={iconBox}>📲</div>
+        <div style={{flex:1}}>
+          <div style={{fontSize:16,fontWeight:700,marginBottom:3}}>{cs?"Встановити додаток":"Nainstalujte si aplikaci"}</div>
+          <div style={{fontSize:12,opacity:0.9}}>{cs?"Швидкий доступ до бронювання з головного екрану":"Rezervujte si termín přímo z plochy telefonu"}</div>
+        </div>
+      </div>
+      <button onClick={doInstall} style={{width:"100%",marginTop:12,padding:"14px",borderRadius:12,border:"2px solid #fff",background:"#fff",color:"#a6744e",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:F,minHeight:50,boxShadow:"0 2px 8px rgba(0,0,0,0.1)"}}>📲 {cs?"Встановити зараз":"Nainstalovat nyní"}</button>
     </div>);
-  if(deferredPrompt)return(
-    <div style={{background:"linear-gradient(135deg,#c9956b,#a6744e)",borderRadius:16,padding:"16px 18px",margin:"0 14px 14px",color:"#fff",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-      <div><div style={{fontSize:15,fontWeight:700,marginBottom:2}}>📲 {txt.title}</div><div style={{fontSize:12,opacity:0.9}}>{txt.desc}</div></div>
-      <div style={{display:"flex",gap:8,flexShrink:0}}>
-        <button onClick={doInstall} style={{padding:"10px 20px",borderRadius:10,border:"2px solid #fff",background:"#fff",color:"#a6744e",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:F,minHeight:44}}>{txt.btn}</button>
-        <button onClick={()=>setDismissed(true)} style={{padding:"10px",borderRadius:10,border:"1px solid rgba(255,255,255,0.4)",background:"none",color:"#fff",fontSize:13,cursor:"pointer",fontFamily:F}}>✕</button>
+  /* ── iOS ── */
+  if(isIos)return(
+    <div style={{...boxStyle,position:"relative"}}>{dismissBtn}
+      <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:14}}>
+        <div style={iconBox}>📲</div>
+        <div>
+          <div style={{fontSize:16,fontWeight:700,marginBottom:3}}>{cs?"Встановити додаток":"Nainstalujte si aplikaci"}</div>
+          <div style={{fontSize:12,opacity:0.9}}>{cs?"Два кроки для швидкого доступу":"Dva kroky pro rychlý přístup z plochy"}</div>
+        </div>
+      </div>
+      <div style={{background:"rgba(255,255,255,0.15)",borderRadius:12,padding:"14px 16px"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+          <div style={{width:36,height:36,borderRadius:10,background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,color:"#007AFF",fontWeight:700}}>1</div>
+          <div style={{fontSize:14,fontWeight:600}}>{cs?"Натисніть":"Klepněte na"} <span style={{background:"rgba(255,255,255,0.3)",padding:"3px 10px",borderRadius:8,fontSize:13}}>{cs?"Поділитися":"Sdílet"} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" style={{verticalAlign:"middle"}}><path d="M4 12v6a2 2 0 002 2h12a2 2 0 002-2v-6M12 3v12M8 7l4-4 4 4"/></svg></span></div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{width:36,height:36,borderRadius:10,background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,color:"#007AFF",fontWeight:700}}>2</div>
+          <div style={{fontSize:14,fontWeight:600}}>{cs?"Оберіть":"Zvolte"} <span style={{background:"rgba(255,255,255,0.3)",padding:"3px 10px",borderRadius:8,fontSize:13}}>➕ {cs?"На Початковий екран":"Na plochu"}</span></div>
+        </div>
       </div>
     </div>);
-  return null;
+  /* ── Android without prompt (Firefox etc.) ── */
+  if(isAndroid)return(
+    <div style={{...boxStyle,position:"relative"}}>{dismissBtn}
+      <div style={{display:"flex",alignItems:"center",gap:14}}>
+        <div style={iconBox}>📲</div>
+        <div>
+          <div style={{fontSize:16,fontWeight:700,marginBottom:3}}>{cs?"Встановити додаток":"Nainstalujte si aplikaci"}</div>
+          <div style={{fontSize:13,opacity:0.9,lineHeight:1.4}}>{cs?"У меню браузера ⋮ натисніть «Встановити» або «На головний екран»":"V menu prohlížeče ⋮ zvolte → Nainstalovat aplikaci"}</div>
+        </div>
+      </div>
+    </div>);
+  /* ── Desktop fallback ── */
+  return(
+    <div style={{...boxStyle,position:"relative"}}>{dismissBtn}
+      <div style={{display:"flex",alignItems:"center",gap:14}}>
+        <div style={iconBox}>📱</div>
+        <div>
+          <div style={{fontSize:16,fontWeight:700,marginBottom:3}}>{cs?"Відкрийте на телефоні":"Otevřete na mobilu"}</div>
+          <div style={{fontSize:12,opacity:0.9,lineHeight:1.4}}>{cs?"Відскануйте QR або відкрийте посилання на телефоні для встановлення додатку":"Otevřete tento odkaz na mobilu — budete si moci nainstalovat aplikaci pro rychlou rezervaci"}</div>
+        </div>
+      </div>
+    </div>);
 }
 
 export default function NailSalonPOS(){
@@ -558,22 +605,25 @@ export default function NailSalonPOS(){
   );
 
   /* ═══ BOOKING-ONLY MODE (for clients) ═══ */
-  if(IS_BOOK) return (
-    <div style={{width:"100%",minHeight:"100vh",background:"linear-gradient(160deg,#faf6f1,#f3ece3)",fontFamily:F,overflow:"auto"}}>
-      <div style={{maxWidth:600,margin:"0 auto",padding:"0 0 30px"}}>
-        <div style={{textAlign:"center",padding:"20px 14px 10px"}}>
+  if(IS_BOOK){
+    /* Allow body scroll in booking mode */
+    document.body.style.overflow='auto';
+    return (
+    <div style={{width:"100%",minHeight:"100vh",background:"linear-gradient(160deg,#faf6f1,#f3ece3)",fontFamily:F}}>
+      <div style={{maxWidth:500,margin:"0 auto",padding:"0 6px 40px"}}>
+        <div style={{textAlign:"center",padding:"16px 10px 8px"}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:10,background:"#fff",borderRadius:16,padding:"10px 20px",boxShadow:"0 2px 12px rgba(0,0,0,0.06)",marginBottom:6}}>
             <span style={{fontSize:28}}>💅</span>
             <div style={{textAlign:"left"}}><div style={{fontFamily:FP,fontSize:16,fontWeight:700,color:"#2c2420"}}>{company.name||"Nail Studio"}</div><div style={{fontSize:11,color:"#c9956b",fontWeight:600}}>Online rezervace</div></div>
           </div>
         </div>
         <InstallBanner lang={"cs"}/>
-        <div style={{background:"#fff",borderRadius:20,margin:"0 10px",padding:"16px 6px",boxShadow:"0 4px 20px rgba(0,0,0,0.06)"}}>
+        <div style={{background:"#fff",borderRadius:20,margin:"0 4px",padding:"16px 10px",boxShadow:"0 4px 20px rgba(0,0,0,0.06)"}}>
           <OnlineBooking taskCards={tasks} bookings={bookings} cancelledIds={freeSlotIds} onBook={handleBook} hours={hours} TAll={T} clients={clients} salonPhone={company.phone}/>
         </div>
       </div>
     </div>
-  );
+  );}
 
   if(!loggedIn) return (
     <div style={{width:"100%",height:"100vh",background:"linear-gradient(160deg,#2c2420,#3d322b,#4a3f37)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:F}}>
