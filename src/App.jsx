@@ -302,6 +302,42 @@ function OnlineBooking({taskCards,bookings,cancelledIds,onBook,hours,TAll,client
 }
 
 /* ═══ MAIN ═══ */
+const IS_BOOK=new URLSearchParams(window.location.search).has('book');
+
+/* ═══ PWA Install Banner Component ═══ */
+function InstallBanner({lang}){
+  const[deferredPrompt,setDeferredPrompt]=useState(null);
+  const[showIosBanner,setShowIosBanner]=useState(false);
+  const[dismissed,setDismissed]=useState(false);
+  const isIos=/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+  const isInStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;
+  useEffect(()=>{
+    if(isInStandalone)return;
+    if(isIos){setShowIosBanner(true);return;}
+    const h=e=>{e.preventDefault();setDeferredPrompt(e);};
+    window.addEventListener('beforeinstallprompt',h);
+    return()=>window.removeEventListener('beforeinstallprompt',h);
+  },[]);
+  const doInstall=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();const r=await deferredPrompt.userChoice;if(r.outcome==='accepted')setDismissed(true);setDeferredPrompt(null);};
+  if(isInStandalone||dismissed)return null;
+  const txt=lang==="ua"?{title:"Встановити додаток",desc:"Додайте на головний екран для швидкого доступу",btn:"Встановити",iosTitle:"Встановити додаток",iosDesc:"Натисніть кнопку «Поділитися» ↗ внизу, потім «На Початковий екран»"}:{title:"Nainstalovat aplikaci",desc:"Přidejte si na plochu pro rychlý přístup",btn:"Nainstalovat",iosTitle:"Nainstalovat aplikaci",iosDesc:"Klepněte na tlačítko \"Sdílet\" ↗ dole a pak \"Na plochu\""};
+  if(isIos&&showIosBanner)return(
+    <div style={{background:"linear-gradient(135deg,#c9956b,#a6744e)",borderRadius:16,padding:"16px 18px",margin:"0 14px 14px",color:"#fff",position:"relative"}}>
+      <button onClick={()=>setDismissed(true)} style={{position:"absolute",top:8,right:12,background:"none",border:"none",color:"rgba(255,255,255,0.7)",fontSize:18,cursor:"pointer"}}>✕</button>
+      <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>📲 {txt.iosTitle}</div>
+      <div style={{fontSize:12,opacity:0.9,lineHeight:1.4}}>{txt.iosDesc}</div>
+    </div>);
+  if(deferredPrompt)return(
+    <div style={{background:"linear-gradient(135deg,#c9956b,#a6744e)",borderRadius:16,padding:"16px 18px",margin:"0 14px 14px",color:"#fff",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+      <div><div style={{fontSize:15,fontWeight:700,marginBottom:2}}>📲 {txt.title}</div><div style={{fontSize:12,opacity:0.9}}>{txt.desc}</div></div>
+      <div style={{display:"flex",gap:8,flexShrink:0}}>
+        <button onClick={doInstall} style={{padding:"10px 20px",borderRadius:10,border:"2px solid #fff",background:"#fff",color:"#a6744e",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:F,minHeight:44}}>{txt.btn}</button>
+        <button onClick={()=>setDismissed(true)} style={{padding:"10px",borderRadius:10,border:"1px solid rgba(255,255,255,0.4)",background:"none",color:"#fff",fontSize:13,cursor:"pointer",fontFamily:F}}>✕</button>
+      </div>
+    </div>);
+  return null;
+}
+
 export default function NailSalonPOS(){
   const[lang,setLang]=useState("cs");const t=T[lang];
   const[loading,setLoading]=useState(true);
@@ -345,6 +381,11 @@ export default function NailSalonPOS(){
   const fillConfirmSms=(b,token)=>fillSms(smsConfirmTpl,b,token)+"\n—\n"+fillSms(smsCancelInfo,b,token);
   useEffect(()=>{const s=document.createElement("style");s.textContent="@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.1);opacity:.7}}@keyframes popIn{0%{transform:scale(0)}60%{transform:scale(1.2)}100%{transform:scale(1)}}";document.head.appendChild(s);return()=>document.head.removeChild(s);},[]);
   /* ═══ SUPABASE DATA LOAD ═══ */
+  useEffect(()=>{
+    /* PWA: swap manifest for booking mode & register SW */
+    if(IS_BOOK){const ml=document.querySelector('link[rel="manifest"]');if(ml)ml.href='/manifest-book.json';}
+    if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  },[]);
   useEffect(()=>{(async()=>{try{
     const[setR,hrR,smsR,scR,svR,mcR,mtR,pcR,prR,clR,bkR,slR,exR]=await Promise.all([
       sb.get('settings','id=eq.1'),sb.get('opening_hours','order=day_of_week'),sb.get('sms_templates'),
@@ -513,6 +554,24 @@ export default function NailSalonPOS(){
       <div style={{width:64,height:64,borderRadius:"50%",background:"linear-gradient(135deg,#c9956b,#a6744e)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,animation:"pulse 1.5s infinite"}}>💅</div>
       <div style={{color:"#f5efe8",fontSize:16,fontFamily:FP}}>Načítání dat...</div>
       <div style={{color:"#b0a090",fontSize:11}}>Připojuji se k databázi</div>
+    </div>
+  );
+
+  /* ═══ BOOKING-ONLY MODE (for clients) ═══ */
+  if(IS_BOOK) return (
+    <div style={{width:"100%",minHeight:"100vh",background:"linear-gradient(160deg,#faf6f1,#f3ece3)",fontFamily:F,overflow:"auto"}}>
+      <div style={{maxWidth:600,margin:"0 auto",padding:"0 0 30px"}}>
+        <div style={{textAlign:"center",padding:"20px 14px 10px"}}>
+          <div style={{display:"inline-flex",alignItems:"center",gap:10,background:"#fff",borderRadius:16,padding:"10px 20px",boxShadow:"0 2px 12px rgba(0,0,0,0.06)",marginBottom:6}}>
+            <span style={{fontSize:28}}>💅</span>
+            <div style={{textAlign:"left"}}><div style={{fontFamily:FP,fontSize:16,fontWeight:700,color:"#2c2420"}}>{company.name||"Nail Studio"}</div><div style={{fontSize:11,color:"#c9956b",fontWeight:600}}>Online rezervace</div></div>
+          </div>
+        </div>
+        <InstallBanner lang={"cs"}/>
+        <div style={{background:"#fff",borderRadius:20,margin:"0 10px",padding:"16px 6px",boxShadow:"0 4px 20px rgba(0,0,0,0.06)"}}>
+          <OnlineBooking taskCards={tasks} bookings={bookings} cancelledIds={freeSlotIds} onBook={handleBook} hours={hours} TAll={T} clients={clients} salonPhone={company.phone}/>
+        </div>
+      </div>
     </div>
   );
 
@@ -741,6 +800,13 @@ export default function NailSalonPOS(){
       {screen==="admin"&&<div style={{flex:1,padding:"12px 20px",overflow:"auto"}}>
         <div style={{fontFamily:FP,fontSize:18,marginBottom:12}}>⚙️ {t.adminTitle}</div>
         <div style={{maxWidth:560,display:"flex",flexDirection:"column",gap:14}}>
+          <div style={{background:"linear-gradient(135deg,#2563eb,#3b82f6)",borderRadius:16,padding:18,color:"#fff"}}><div style={{fontSize:14,fontWeight:700,marginBottom:8}}>🌐 Rezervační odkaz pro klienty</div>
+            <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:10}}><input type="text" readOnly value={window.location.origin+"/?book"} style={{flex:1,padding:"10px 12px",borderRadius:8,border:"none",fontSize:12,fontFamily:F,background:"rgba(255,255,255,0.2)",color:"#fff",outline:"none"}}/><button onClick={()=>{navigator.clipboard.writeText(window.location.origin+"/?book");}} style={{padding:"10px 16px",borderRadius:8,border:"none",background:"#fff",color:"#2563eb",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:F,whiteSpace:"nowrap"}}>📋 Kopírovat</button></div>
+            <div style={{fontSize:11,opacity:0.85,marginBottom:12}}>Tento odkaz pošlete klientkám — otevře se jim rezervační stránka a mohou si ji nainstalovat jako aplikaci na mobil.</div>
+            <div style={{background:"rgba(255,255,255,0.15)",borderRadius:12,padding:14}}><div style={{fontSize:12,fontWeight:600,marginBottom:8}}>📧 Pozvat klientku emailem</div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}><input type="text" placeholder="Jméno klientky" id="invName" style={{flex:1,minWidth:120,padding:"9px 11px",borderRadius:8,border:"none",fontSize:12,fontFamily:F,outline:"none"}}/><input type="email" placeholder="Email klientky" id="invEmail" style={{flex:1,minWidth:160,padding:"9px 11px",borderRadius:8,border:"none",fontSize:12,fontFamily:F,outline:"none"}}/><button onClick={()=>{const n=document.getElementById("invName").value;const e=document.getElementById("invEmail").value;if(!e)return;const url=window.location.origin+"/?book";const subj=encodeURIComponent("Rezervace — "+(company.name||"Nail Studio"));const body=encodeURIComponent("Dobrý den"+(n?" "+n:"")+",\n\nrádi Vás zveme k online rezervaci v našem salonu "+(company.name||"Nail Studio")+".\n\nZarezervujte si termín zde:\n"+url+"\n\nTěšíme se na Vás!\n"+(company.name||"Nail Studio")+"\n"+(company.phone?"Tel: "+company.phone:""));window.open("mailto:"+e+"?subject="+subj+"&body="+body);}} style={{padding:"9px 16px",borderRadius:8,border:"none",background:"#fff",color:"#2563eb",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:F,whiteSpace:"nowrap"}}>📧 Poslat</button></div>
+            </div>
+          </div>
           <div style={{background:"#fff",borderRadius:12,padding:18,border:"1px solid #ede4d8"}}><div style={{fontSize:12,fontWeight:600,marginBottom:10}}>🏢 {t.companyData}</div>{[{k:"name",l:t.companyName},{k:"owner",l:t.ownerName},{k:"address",l:t.address},{k:"ico",l:t.ico},{k:"dic",l:t.dic}].map(f=><div key={f.k} style={{marginBottom:8}}><div style={{fontSize:10,color:"#8a7b6b",marginBottom:2}}>{f.l}</div><input type="text" value={company[f.k]} onChange={e=>setCompany(p=>({...p,[f.k]:e.target.value}))} style={{width:"100%",padding:"9px 11px",borderRadius:8,border:"1px solid #e8dfd4",fontSize:13,fontFamily:F,outline:"none",boxSizing:"border-box"}}/></div>)}</div>
           <div style={{background:"#fff",borderRadius:12,padding:18,border:"1px solid #ede4d8"}}><div style={{fontSize:12,fontWeight:600,marginBottom:10}}>📞 {t.contactInfo}</div>{[{k:"phone",l:t.phone},{k:"email",l:t.email},{k:"bankAccount",l:t.bankAccount}].map(f=><div key={f.k} style={{marginBottom:8}}><div style={{fontSize:10,color:"#8a7b6b",marginBottom:2}}>{f.l}</div><input type="text" value={company[f.k]} onChange={e=>setCompany(p=>({...p,[f.k]:e.target.value}))} style={{width:"100%",padding:"9px 11px",borderRadius:8,border:"1px solid #e8dfd4",fontSize:13,fontFamily:F,outline:"none",boxSizing:"border-box"}}/></div>)}</div>
           <div style={{background:"#fff",borderRadius:12,padding:18,border:"1px solid #ede4d8"}}><div style={{fontSize:12,fontWeight:600,marginBottom:4}}>🕐 {t.openingHours}</div><div style={{fontSize:10,color:"#8a7b6b",marginBottom:10}}>{t.hoursNote}</div><div style={{display:"flex",flexDirection:"column",gap:6}}>{[1,2,3,4,5,6,0].map(di=>{const h=hours.find(x=>x.day===di);if(!h)return null;return (<div key={di} style={{background:h.open?"#fafaf8":"#f9f5f5",borderRadius:10,padding:"10px 14px",border:h.open?"1px solid #e8dfd4":"1px solid #f0ddd0"}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:h.open?8:0}}><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:12,fontWeight:700,minWidth:75}}>{t.dayNames[di]}</span><button onClick={()=>updHour(di,"open",!h.open)} style={{padding:"4px 12px",borderRadius:14,border:"none",fontSize:10,fontWeight:600,cursor:"pointer",background:h.open?"#d4edda":"#f8d7da",color:h.open?"#155724":"#721c24",fontFamily:F}}>{h.open?t.opened:t.closed}</button></div>{h.open&&<div style={{fontSize:10,color:"#8a7b6b"}}>{h.start}—{h.end}{h.hasBreak?" | "+t.breakLabel+" "+h.breakStart+"–"+h.breakEnd:""}</div>}</div>{h.open&&<div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><span style={{fontSize:10,color:"#8a7b6b"}}>{t.from}:</span><input type="time" value={h.start} onChange={e=>updHour(di,"start",e.target.value)} style={{padding:"4px 6px",borderRadius:6,border:"1px solid #e8dfd4",fontSize:11,fontFamily:F,outline:"none"}}/><span style={{fontSize:10,color:"#8a7b6b"}}>{t.to}:</span><input type="time" value={h.end} onChange={e=>updHour(di,"end",e.target.value)} style={{padding:"4px 6px",borderRadius:6,border:"1px solid #e8dfd4",fontSize:11,fontFamily:F,outline:"none"}}/><button onClick={()=>updHour(di,"hasBreak",!h.hasBreak)} style={{padding:"4px 10px",borderRadius:12,border:"none",fontSize:9,fontWeight:600,cursor:"pointer",fontFamily:F,background:h.hasBreak?"#fff3cd":"#f0e8de",color:h.hasBreak?"#856404":"#a09080"}}>{h.hasBreak?"☕"+t.breakLabel:t.addBreak}</button>{h.hasBreak&&<><input type="time" value={h.breakStart} onChange={e=>updHour(di,"breakStart",e.target.value)} style={{padding:"4px 6px",borderRadius:6,border:"1px solid #f0dcc0",fontSize:11,fontFamily:F,outline:"none",background:"#fffbf0"}}/><span>—</span><input type="time" value={h.breakEnd} onChange={e=>updHour(di,"breakEnd",e.target.value)} style={{padding:"4px 6px",borderRadius:6,border:"1px solid #f0dcc0",fontSize:11,fontFamily:F,outline:"none",background:"#fffbf0"}}/></>}</div>}</div>);})}</div></div>
