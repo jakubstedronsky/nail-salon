@@ -617,7 +617,30 @@ export default function NailSalonPOS(){
             <div style={{textAlign:"left"}}><div style={{fontFamily:FP,fontSize:16,fontWeight:700,color:"#2c2420"}}>{company.name||"Nail Studio"}</div><div style={{fontSize:11,color:"#c9956b",fontWeight:600}}>Online rezervace</div></div>
           </div>
         </div>
-        <InstallBanner lang={"cs"}/>
+        {/* ── INSTALL BANNER ── */}
+        {!window.matchMedia('(display-mode: standalone)').matches&&!window.navigator.standalone&&(
+          /iphone|ipad|ipod/i.test(navigator.userAgent)
+          ?<div style={{background:"linear-gradient(135deg,#c9956b,#a6744e)",borderRadius:16,padding:"18px 20px",margin:"0 6px 14px",color:"#fff",boxShadow:"0 4px 16px rgba(201,149,107,0.4)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:12}}>
+              <div style={{width:48,height:48,borderRadius:14,background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,flexShrink:0}}>📲</div>
+              <div><div style={{fontSize:15,fontWeight:700}}>Přidejte si na plochu</div><div style={{fontSize:11,opacity:0.85}}>Pro rychlý přístup k rezervaci</div></div>
+            </div>
+            <div style={{background:"rgba(255,255,255,0.15)",borderRadius:12,padding:"12px 16px",display:"flex",flexDirection:"column",gap:8}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:28,height:28,borderRadius:8,background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,color:"#007AFF",fontWeight:700}}>1</div><div style={{fontSize:13,fontWeight:600}}>Klepněte na <span style={{background:"rgba(255,255,255,0.3)",padding:"2px 8px",borderRadius:6}}>Sdílet ↗</span></div></div>
+              <div style={{display:"flex",alignItems:"center",gap:10}}><div style={{width:28,height:28,borderRadius:8,background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,color:"#007AFF",fontWeight:700}}>2</div><div style={{fontSize:13,fontWeight:600}}>Zvolte <span style={{background:"rgba(255,255,255,0.3)",padding:"2px 8px",borderRadius:6}}>➕ Na plochu</span></div></div>
+            </div>
+          </div>
+          :<div style={{background:"linear-gradient(135deg,#c9956b,#a6744e)",borderRadius:16,padding:"18px 20px",margin:"0 6px 14px",color:"#fff",boxShadow:"0 4px 16px rgba(201,149,107,0.4)",cursor:"pointer"}} onClick={()=>{if(_deferredInstallPrompt){_deferredInstallPrompt.prompt();_deferredInstallPrompt.userChoice.then(()=>{_deferredInstallPrompt=null;});}else{alert(/android/i.test(navigator.userAgent)?"Klepněte na ⋮ v pravém horním rohu prohlížeče → Přidat na plochu":"Otevřete tuto stránku v prohlížeči Chrome pro přidání na plochu")}}}>
+            <div style={{display:"flex",alignItems:"center",gap:14}}>
+              <div style={{width:48,height:48,borderRadius:14,background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,flexShrink:0}}>📲</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:16,fontWeight:700,marginBottom:3}}>Přidat na plochu</div>
+                <div style={{fontSize:12,opacity:0.9}}>Klepněte sem pro rychlý přístup</div>
+              </div>
+              <div style={{width:40,height:40,borderRadius:10,background:"rgba(255,255,255,0.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>→</div>
+            </div>
+          </div>
+        )}
         <div style={{background:"#fff",borderRadius:20,margin:"0 4px",padding:"16px 10px",boxShadow:"0 4px 20px rgba(0,0,0,0.06)"}}>
           <OnlineBooking taskCards={tasks} bookings={bookings} cancelledIds={freeSlotIds} onBook={handleBook} hours={hours} TAll={T} clients={clients} salonPhone={company.phone}/>
         </div>
