@@ -29,8 +29,15 @@
       /* Phone */
       @media (max-width: 480px) {
         .booking-svc-grid { grid-template-columns: 1fr !important; }
-        .modal-box, .modal-wide { width: 96vw !important; max-width: none !important; margin: 8px !important; }
+        .modal-box, .modal-wide { width: 96vw !important; max-width: none !important; margin: 4px !important; }
         .nav-bar button { font-size: 9px !important; padding: 8px 3px !important; }
+      }
+      /* Ultra-narrow (Samsung Fold folded) */
+      @media (max-width: 400px) {
+        .nav-bar button { font-size: 8px !important; padding: 6px 2px !important; gap: 2px !important; }
+        .nav-bar button span:first-child { font-size: 13px !important; }
+        .modal-box, .modal-wide { width: 98vw !important; padding: 14px !important; }
+        .pos-right { width: 100% !important; }
       }
     </style>
   </head>
